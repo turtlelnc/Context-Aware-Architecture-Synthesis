@@ -1,4 +1,5 @@
 build/
+build-manual/
 best_genotype.json
 *.o
 *.a
