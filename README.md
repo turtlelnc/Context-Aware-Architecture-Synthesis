@@ -49,3 +49,11 @@ Run `./build/archsynth_cli --help` to list command-line options.
 `LLMMutator` accepts a response-provider callback instead of silently pretending
 to call an API. Applications can use their preferred HTTP client in that callback.
 The callback receives a prompt and must return one complete genotype JSON object.
+
+## Architecture validation
+
+Every generated or imported graph is checked before evaluation. Validation rejects
+cycles, missing or duplicate edges, disconnected nodes, incorrect primitive input
+counts, invalid hyperparameters, and tensor-dimension mismatches. The graph input
+currently uses a feature dimension of 256. `residual_add` requires exactly two
+inputs with the same dimension.
