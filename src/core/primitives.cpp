@@ -22,4 +22,14 @@ int primitive_max_inputs(const std::string& name){ return primitive_min_inputs(n
 namespace { int64_t positive_integer(const Hyperparams& hp,const std::string& key,const std::string& primitive){ auto it=hp.find(key); if(it==hp.end()||it->second<=0||it->second!=static_cast<int64_t>(it->second)) throw std::invalid_argument(primitive+" requires a positive integer hyperparameter '"+key+"'"); return static_cast<int64_t>(it->second); } }
 int64_t primitive_input_dim(const std::string& name,const Hyperparams& hp){ get_primitive(name); if(name=="linear"||name=="linear_lowrank") return positive_integer(hp,"in_dim",name); if(name=="lookup_table") return -1; return positive_integer(hp,"dim",name); }
 int64_t primitive_output_dim(const std::string& name,const Hyperparams& hp){ get_primitive(name); if(name=="linear"||name=="linear_lowrank") return positive_integer(hp,"out_dim",name); return positive_integer(hp,"dim",name); }
+TensorKind primitive_input_kind(const std::string& name){ get_primitive(name); return name=="lookup_table"?TensorKind::TokenIds:TensorKind::FloatFeatures; }
+TensorKind primitive_output_kind(const std::string& name){ get_primitive(name); return TensorKind::FloatFeatures; }
+void validate_primitive_hyperparams(const std::string& name,const Hyperparams& hp){
+ get_primitive(name);
+ const auto input=primitive_input_dim(name,hp); const auto output=primitive_output_dim(name,hp); (void)input; (void)output;
+ if(name=="lookup_table") positive_integer(hp,"vocab_size",name);
+ if(name=="linear_lowrank"){ const auto rank=positive_integer(hp,"rank",name); if(rank>std::min(positive_integer(hp,"in_dim",name),positive_integer(hp,"out_dim",name))) throw std::invalid_argument("linear_lowrank rank must not exceed in_dim or out_dim"); }
+ if(name=="attention_std"||name=="attention_linear"){ const auto dim=positive_integer(hp,"dim",name); const auto heads=positive_integer(hp,"heads",name); positive_integer(hp,"seq_len",name); if(dim%heads!=0) throw std::invalid_argument(name+" dim must be divisible by heads"); }
+ if(name=="swiglu") positive_integer(hp,"hidden_dim",name);
+}
 }
