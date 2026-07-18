@@ -81,14 +81,18 @@ bool ComputeGraph::is_valid(std::string& error) const {
     }
     const auto order = topological_order();
     std::unordered_set<std::string> reachable{input_node_id};
-    std::unordered_map<std::string, int64_t> dimensions{{input_node_id, 256}};
+    std::unordered_map<std::string, int64_t> dimensions{{input_node_id, -1}};
+    std::unordered_map<std::string, TensorKind> kinds{{input_node_id, TensorKind::TokenIds}};
     for (const auto& id : order) {
       if (id == input_node_id) continue;
       const auto sources = get_sources(id);
       if (id == output_node_id) {
         if (sources.size() != 1) throw std::runtime_error("output node requires exactly one input");
         if (!reachable.count(sources.front())) throw std::runtime_error("output is not reachable from input");
+        if (kinds.at(sources.front()) != TensorKind::FloatFeatures)
+          throw std::runtime_error("output node requires floating-point features");
         dimensions[id] = dimensions.at(sources.front());
+        kinds[id] = TensorKind::FloatFeatures;
         reachable.insert(id);
         continue;
       }
@@ -101,15 +105,22 @@ bool ComputeGraph::is_valid(std::string& error) const {
       const auto hyperparams = node.hyperparams_vals.empty()
                                    ? default_hyperparams_for(node.primitive_name)
                                    : node.hyperparams_vals;
+      validate_primitive_hyperparams(node.primitive_name, hyperparams);
       const int64_t expected = primitive_input_dim(node.primitive_name, hyperparams);
+      const TensorKind expected_kind = primitive_input_kind(node.primitive_name);
       for (const auto& source : sources) {
         if (!reachable.count(source)) throw std::runtime_error("node '" + id + "' is not reachable from input");
+        if (kinds.at(source) != expected_kind) {
+          const std::string expected_name = expected_kind == TensorKind::TokenIds ? "token IDs" : "floating-point features";
+          throw std::runtime_error("tensor type mismatch at node '" + id + "': expected " + expected_name);
+        }
         const int64_t actual = dimensions.at(source);
         if (expected > 0 && actual != expected)
           throw std::runtime_error("dimension mismatch at node '" + id + "': expected " +
                                    std::to_string(expected) + ", got " + std::to_string(actual));
       }
       dimensions[id] = primitive_output_dim(node.primitive_name, hyperparams);
+      kinds[id] = primitive_output_kind(node.primitive_name);
       reachable.insert(id);
     }
     if (!reachable.count(output_node_id)) throw std::runtime_error("no path from input to output");
