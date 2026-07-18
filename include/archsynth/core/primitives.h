@@ -9,4 +9,8 @@ void register_primitives();
 const Primitive& get_primitive(const std::string& name);
 std::vector<std::string> list_primitives();
 Hyperparams default_hyperparams_for(const std::string& primitive_name);
+int primitive_min_inputs(const std::string& primitive_name);
+int primitive_max_inputs(const std::string& primitive_name);
+int64_t primitive_input_dim(const std::string& primitive_name,const Hyperparams& hyperparams);
+int64_t primitive_output_dim(const std::string& primitive_name,const Hyperparams& hyperparams);
 }
