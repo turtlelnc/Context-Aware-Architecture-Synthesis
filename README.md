@@ -57,3 +57,9 @@ cycles, missing or duplicate edges, disconnected nodes, incorrect primitive inpu
 counts, invalid hyperparameters, and tensor-dimension mismatches. The graph input
 currently uses a feature dimension of 256. `residual_add` requires exactly two
 inputs with the same dimension.
+
+The graph input represents a rank-1 sequence of integer token IDs. A
+`lookup_table` converts it to rank-2 floating-point features and is therefore
+only valid directly after `input`. All remaining primitives consume and produce
+floating-point features. Attention dimensions must be divisible by the number
+of heads, and low-rank linear layers require `rank <= min(in_dim, out_dim)`.

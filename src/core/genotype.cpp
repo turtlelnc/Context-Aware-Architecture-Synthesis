@@ -90,7 +90,7 @@ Genotype Genotype::from_json(const std::string& text) {
 }
 
 Genotype make_minimal_genotype() {
-  return {{{"n0", "linear", default_hyperparams_for("linear")}},
+  return {{{"n0", "lookup_table", default_hyperparams_for("lookup_table")}},
           {{"input", "n0"}, {"n0", "output"}}};
 }
 }  // namespace archsynth
