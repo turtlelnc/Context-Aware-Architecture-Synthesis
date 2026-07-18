@@ -1,4 +1,37 @@
 #include "archsynth/evaluation/evaluator.h"
-namespace archsynth { Evaluator::Evaluator(std::unique_ptr<ProxyTrainer> t,Scenario s):trainer_(std::move(t)),scenario_(std::move(s)){} double Evaluator::hardware_penalty(const HardwareProfile& h) const{ double p=0; auto m=scenario_.constraints.find("max_memory_mb"); if(m!=scenario_.constraints.end()) p+=std::max(0.0, h.estimated_memory_bytes/1048576.0-m->second); auto l=scenario_.constraints.find("max_latency_ms"); if(l!=scenario_.constraints.end()) p+=std::max(0.0, h.estimated_latency_ms-l->second); return p/1000.0; } double Evaluator::evaluate(const Genotype& g) const{ return alpha_*trainer_->train_and_evaluate(g)-beta_*hardware_penalty(compute_hardware_profile(g)); } std::vector<double> Evaluator::evaluate_population(const std::vector<Genotype>& gs) const{ std::vector<double> out(gs.size());
-#pragma omp parallel for if(gs.size()>8)
- for(int i=0;i<(int)gs.size();++i) out[i]=evaluate(gs[i]); return out; } }
+
+#include <algorithm>
+#include <stdexcept>
+
+namespace archsynth {
+Evaluator::Evaluator(std::unique_ptr<ProxyTrainer> trainer, Scenario scenario)
+    : trainer_(std::move(trainer)), scenario_(std::move(scenario)) {
+  if (!trainer_) throw std::invalid_argument("evaluator requires a trainer");
+}
+
+double Evaluator::hardware_penalty(const HardwareProfile& hardware) const {
+  double penalty = 0.0;
+  const auto memory = scenario_.constraints.find("max_memory_mb");
+  if (memory != scenario_.constraints.end())
+    penalty += std::max(0.0, hardware.estimated_memory_bytes / 1048576.0 - memory->second);
+  const auto latency = scenario_.constraints.find("max_latency_ms");
+  if (latency != scenario_.constraints.end())
+    penalty += std::max(0.0, hardware.estimated_latency_ms - latency->second);
+  return penalty / 1000.0;
+}
+
+double Evaluator::evaluate(const Genotype& genotype) const {
+  return alpha_ * trainer_->train_and_evaluate(genotype) -
+         beta_ * hardware_penalty(compute_hardware_profile(genotype));
+}
+
+std::vector<double> Evaluator::evaluate_population(const std::vector<Genotype>& genotypes) const {
+  std::vector<double> result(genotypes.size());
+#ifdef _OPENMP
+#pragma omp parallel for if(genotypes.size() > 8)
+#endif
+  for (int i = 0; i < static_cast<int>(genotypes.size()); ++i)
+    result[static_cast<std::size_t>(i)] = evaluate(genotypes[static_cast<std::size_t>(i)]);
+  return result;
+}
+}  // namespace archsynth
