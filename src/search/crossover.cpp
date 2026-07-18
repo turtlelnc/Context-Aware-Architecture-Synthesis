@@ -1,0 +1,2 @@
+#include "archsynth/search/crossover.h"
+namespace archsynth { Genotype crossover(const Genotype& a,const Genotype& b,std::mt19937& rng){ Genotype c; for(size_t i=0;i<a.nodes.size();++i) if(i%2==0) c.nodes.push_back(a.nodes[i]); for(size_t i=0;i<b.nodes.size();++i) if(i%2==1) c.nodes.push_back(b.nodes[i]); c.edges = (std::uniform_int_distribution<int>(0,1)(rng)==0)?a.edges:b.edges; std::string e; return c.to_graph().is_valid(e)?c:a; } }

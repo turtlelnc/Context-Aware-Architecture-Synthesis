@@ -1,0 +1,2 @@
+#include "archsynth/evaluation/hardware_cost.h"
+namespace archsynth { HardwareProfile compute_hardware_profile(const Genotype& g){ HardwareProfile h; for(auto&n:g.nodes){ const auto&p=get_primitive(n.primitive_name); h.total_flops+=p.flops_per_token; h.total_params+=p.param_count; h.estimated_memory_bytes+=p.memory_bytes; } h.estimated_latency_ms=h.total_flops/1e6 + static_cast<double>(h.estimated_memory_bytes)/(256.0*1024.0*1024.0); return h; } }

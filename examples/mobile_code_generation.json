@@ -1,0 +1,9 @@
+{
+  "task_type": "code_generation",
+  "text": "2B parameter model for mobile-side code generation with latency under 50ms",
+  "constraints": {
+    "max_memory_mb": 2048,
+    "max_latency_ms": 50
+  },
+  "target_metric": "HumanEval_pass1"
+}
