@@ -1,0 +1,4 @@
+build/
+best_genotype.json
+*.o
+*.a

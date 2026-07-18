@@ -1,0 +1,4 @@
+#include "archsynth/evaluation/evaluator.h"
+namespace archsynth { Evaluator::Evaluator(std::unique_ptr<ProxyTrainer> t,Scenario s):trainer_(std::move(t)),scenario_(std::move(s)){} double Evaluator::hardware_penalty(const HardwareProfile& h) const{ double p=0; auto m=scenario_.constraints.find("max_memory_mb"); if(m!=scenario_.constraints.end()) p+=std::max(0.0, h.estimated_memory_bytes/1048576.0-m->second); auto l=scenario_.constraints.find("max_latency_ms"); if(l!=scenario_.constraints.end()) p+=std::max(0.0, h.estimated_latency_ms-l->second); return p/1000.0; } double Evaluator::evaluate(const Genotype& g) const{ return alpha_*trainer_->train_and_evaluate(g)-beta_*hardware_penalty(compute_hardware_profile(g)); } std::vector<double> Evaluator::evaluate_population(const std::vector<Genotype>& gs) const{ std::vector<double> out(gs.size());
+#pragma omp parallel for if(gs.size()>8)
+ for(int i=0;i<(int)gs.size();++i) out[i]=evaluate(gs[i]); return out; } }

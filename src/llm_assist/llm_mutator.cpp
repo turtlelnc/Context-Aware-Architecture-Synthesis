@@ -1,0 +1,3 @@
+#include "archsynth/llm_assist/llm_mutator.h"
+#include "archsynth/search/mutations.h"
+namespace archsynth { LLMMutator::LLMMutator(std::string k,std::string e,std::string m):api_key_(std::move(k)),endpoint_(std::move(e)),model_(std::move(m)){} std::string LLMMutator::build_prompt(const Genotype& g,const Scenario& s,double f) const{ return s.text+" fitness="+std::to_string(f)+" genotype="+g.to_json(); } std::vector<Genotype> LLMMutator::propose_mutations(const Genotype& best,const Scenario& s,double f,std::mt19937& rng) const{ (void)build_prompt(best,s,f); auto g=best; ChangePrimitiveMutation m; if(m.apply(g,rng,{})) return {g}; return {}; } }

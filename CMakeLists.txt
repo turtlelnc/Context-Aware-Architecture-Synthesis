@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.16)
+project(ArchSynth VERSION 0.1.0 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(ARCHSYNTH_BUILD_TESTS "Build ArchSynth tests" ON)
+add_library(archsynth
+  src/core/primitives.cpp src/core/graph.cpp src/core/genotype.cpp
+  src/search/mutations.cpp src/search/population.cpp src/search/crossover.cpp src/search/evolution.cpp
+  src/evaluation/hardware_cost.cpp src/evaluation/proxy_trainer.cpp src/evaluation/evaluator.cpp
+  src/conditioning/scenario_encoder.cpp src/llm_assist/llm_mutator.cpp src/export/builder.cpp)
+target_include_directories(archsynth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(archsynth PUBLIC OpenMP::OpenMP_CXX)
+endif()
+add_executable(archsynth_cli src/main.cpp)
+target_link_libraries(archsynth_cli PRIVATE archsynth)
+if(ARCHSYNTH_BUILD_TESTS)
+  enable_testing()
+  foreach(t primitives graph genotype mutations evaluator evolution)
+    add_executable(test_${t} tests/test_${t}.cpp)
+    target_link_libraries(test_${t} PRIVATE archsynth)
+    add_test(NAME test_${t} COMMAND test_${t})
+  endforeach()
+endif()
