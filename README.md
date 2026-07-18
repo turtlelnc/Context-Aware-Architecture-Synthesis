@@ -16,4 +16,36 @@ ctest --test-dir build --output-on-failure
 ./build/archsynth_cli
 ```
 
-The CLI writes `best_genotype.json` and prints the best proxy fitness.
+With no arguments, the CLI reads `examples/mobile_code_generation.json`, writes
+`best_genotype.json`, and prints the best proxy fitness. To use another scenario:
+
+```bash
+./build/archsynth_cli \
+  --input my_scenario.json \
+  --output result.json \
+  --population 100 \
+  --generations 50 \
+  --seed 42
+```
+
+The scenario file must contain:
+
+```json
+{
+  "task_type": "code_generation",
+  "text": "mobile code model under 50ms",
+  "constraints": {
+    "max_memory_mb": 2048,
+    "max_latency_ms": 50
+  },
+  "target_metric": "proxy"
+}
+```
+
+Run `./build/archsynth_cli --help` to list command-line options.
+
+## LLM assist integration
+
+`LLMMutator` accepts a response-provider callback instead of silently pretending
+to call an API. Applications can use their preferred HTTP client in that callback.
+The callback receives a prompt and must return one complete genotype JSON object.
