@@ -1,0 +1,9 @@
+{
+  "task_type": "code_generation",
+  "text": "为移动设备设计一个低延迟代码生成模型",
+  "constraints": {
+    "max_memory_mb": 3072,
+    "max_latency_ms": 15
+  },
+  "target_metric": "proxy"
+}
