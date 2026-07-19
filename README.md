@@ -44,6 +44,11 @@ The scenario file must contain:
 
 Run `./build/archsynth_cli --help` to list command-line options.
 
+The CLI also writes a score report next to the genotype (for example,
+`result.json.report.json`). Use `--report scores.json` to choose another path.
+The report contains quality, memory, latency, redundancy, pattern and depth
+components, hardware estimates, the final fitness and human-readable findings.
+
 ## LLM assist integration
 
 `LLMMutator` accepts a response-provider callback instead of silently pretending
