@@ -5,6 +5,7 @@
 #include "archsynth/search/evolution.h"
 
 #include <fstream>
+#include <cmath>
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
@@ -34,7 +35,7 @@ int positive_int(const char* value, const std::string& option) {
 }
 
 void usage(const char* program) {
-  std::cout << "Usage: " << program << " [--input scenario.json] [--output genotype.json]"
+  std::cout << "Usage: " << program << " [--input scenario.json] [--output genotype.json] [--report scores.json]"
             << " [--population N] [--generations N] [--seed N]\n";
 }
 }  // namespace
@@ -43,6 +44,7 @@ int main(int argc, char** argv) {
   try {
     std::string input_path = "examples/mobile_code_generation.json";
     std::string output_path = "best_genotype.json";
+    std::string report_path;
     archsynth::EvolutionConfig config;
     config.population_size = 12;
     config.max_generations = 5;
@@ -55,6 +57,7 @@ int main(int argc, char** argv) {
       const char* value = argv[++i];
       if (option == "--input") input_path = value;
       else if (option == "--output") output_path = value;
+      else if (option == "--report") report_path = value;
       else if (option == "--population") config.population_size = positive_int(value, option);
       else if (option == "--generations") config.max_generations = positive_int(value, option);
       else if (option == "--seed") seed = static_cast<unsigned>(positive_int(value, option));
@@ -70,13 +73,30 @@ int main(int argc, char** argv) {
     archsynth::Evolution evolution(
         config, std::move(evaluator), archsynth::create_default_mutations());
     auto [best, fitness] = evolution.run(encoder.encode(scenario), rng);
+    archsynth::Evaluator report_evaluator(std::make_unique<archsynth::ProxyTrainer>(), scenario);
+    const auto report = report_evaluator.score(best);
 
     std::ofstream output(output_path);
     if (!output) throw std::runtime_error("cannot write output file: " + output_path);
     output << best.to_json() << '\n';
-    std::cout << "Best fitness: " << fitness << "\n"
+    if (report_path.empty()) report_path = output_path + ".report.json";
+    std::ofstream report_output(report_path);
+    if (!report_output) throw std::runtime_error("cannot write report file: " + report_path);
+    report_output << report.to_json() << '\n';
+    std::cout << "Quality score: " << report.quality_score << "\n"
+              << "Memory penalty: " << report.memory_penalty << "\n"
+              << "Latency penalty: " << report.latency_penalty << "\n"
+              << "Redundancy penalty: " << report.redundancy_penalty << "\n"
+              << "Pattern penalty: " << report.pattern_penalty << "\n"
+              << "Depth penalty: " << report.depth_penalty << "\n"
+              << "Final fitness: " << report.final_fitness << "\n"
               << archsynth::ModelBuilder::build(best)->summary() << "\n"
-              << "Saved genotype: " << output_path << "\n";
+              << "Estimated memory: " << report.hardware.estimated_memory_bytes / 1048576.0 << " MB\n"
+              << "Estimated latency: " << report.hardware.estimated_latency_ms << " ms\n"
+              << "Saved genotype: " << output_path << "\n"
+              << "Saved score report: " << report_path << "\n";
+    if (std::abs(fitness - report.final_fitness) > 1e-12)
+      throw std::runtime_error("reported fitness does not match search fitness");
     return 0;
   } catch (const std::exception& error) {
     std::cerr << "archsynth: " << error.what() << '\n';
